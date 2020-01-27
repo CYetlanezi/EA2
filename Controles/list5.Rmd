@@ -1,0 +1,132 @@
+---
+title: "Lista5"
+author: "Claudia Meneses"
+date: "1/1/2020"
+output: html_document
+---
+
+```{r}
+library(MASS)
+dataset = read.csv("/Users/claudiameneses/desktop/EA2/Lista2/cableTV.csv", header=T,
+                   colClasses = c("numeric", "numeric", "numeric","numeric", "numeric", "numeric","numeric", "numeric", "numeric"))
+```
+
+Resumen de los datos
+
+```{r}
+summary(dataset)
+```
+
+Con base en los datos de la encuesta sobre servivio de televisión por cable se considera el siguiente modelo de regresión lineal múltiple:
+
+$$Renta = \beta_0  + \beta_1 * niños + \beta_2 * adultos + \beta_3 * tvtotal + \beta_4 * valor$$
+Regresión y resumen del modelo
+
+```{r}
+modAdju <- lm( renta. ~ ninos. + adultos. + tvtot. + X.valor , data = dataset)
+summary(modAdju)
+```
+
+1. Conrucción de la matriz X, calculo de la matriz X'X sus valores propios.
+```{r}
+X <- model.matrix(modAdju)
+XX <- t(X)%*%X
+eig <- eigen(XX)
+eigen_values <- eig$values
+eigen_values
+```
+
+2. Calculo de $\hat{\beta}$ por medio de las ecuaciones normales.
+
+```{r}
+Y <- dataset$renta.
+beta <- solve(crossprod(X), crossprod(X,Y))
+beta
+```
+
+3. Estimación de la varianza mediante el cuadrado medio de los residuales. Varias formas.
+
+```{r}
+s2 <- deviance(modAdju)
+s2
+sum(resid(modAdju)^2)
+anova(modAdju) 
+anova(modAdju)["Residuals", "Sum Sq"]
+with(summary(modAdju), df[2] * sigma^2)
+```
+
+4. Calculo de la matriz de covarianzas de los coeficientes estimados $cov(\hat{\beta})$.
+
+```{r}
+vcov(modAdju)
+```
+
+5. Determine los errores estándar de los coeficientes $s_j = ee(\hat{\beta}_j)$
+
+```{r}
+se <- sqrt(diag(vcov(modAdju)))
+se
+```
+
+6. Verificar*
+
+```{r}
+a <- se^(2)
+a <- sum(a)
+a
+b <- eigen_values^(-1)
+b <- sum(b)
+b <- b*(sum(resid(modAdju)^2))
+b
+```
+
+8. Intervalo de 90% de confianza para $\beta_3$.
+
+```{r}
+confint(modAdju, 'ninos.', level=0.90)
+confint(modAdju, 'adultos.', level=0.90)
+confint(modAdju, 'tvtot.', level=0.90)
+confint(modAdju, 'X.valor', level=0.90)
+```
+
+
+9. Verificar que la renta que esperaría pagar una casa habitación a un nivel promedio de los regresores ( $\bar{x} = (1,\bar{x}_1 , \bar{x}_2, \bar{x}_3, \bar{x}_4 )'$ ) es $\bar{y}$, la renta promedio.
+
+```{r}
+y_mean <- mean(Y)
+x_prom <- c(1,mean(dataset$ninos.), mean(dataset$adultos.), mean(dataset$tvtot.), mean(dataset$X.valor)) 
+y_est <- sum(beta*x_prom)
+print(y_mean == y_est)
+```
+
+10. Respuesta media
+
+```{r}
+x_0 <- c(1,1,2,60,300000)
+y_0 <- sum(beta*x_0)
+c <- ginv(XX)
+aux <- sqrt(s2*t(x_0)%*%c%*%x_0)
+int_inf <- y_0 - qt(0.05,35)*aux
+int_sup <- y_0 + qt(0.05,35)*aux
+int_inf
+int_sup
+```
+
+
+11. Respuesta nueva estimación
+
+```{r}
+x_0 <- c(1,2,3,70,350000)
+y_0 <- sum(beta*x_0)
+c <- ginv(XX)
+aux <- sqrt(s2*(1 + t(x_0)%*%c%*%x_0))
+int_inf <- y_0 - qt(0.025,35)*aux
+int_sup <- y_0 + qt(0.025,35)*aux
+int_inf
+int_sup
+```
+
+
+
+
+

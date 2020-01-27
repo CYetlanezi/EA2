@@ -1,0 +1,91 @@
+---
+title: "Lista 9: Minimos cuadrados ponderados y generalizados"
+author: "Claudia Meneses"
+date: "4/1/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+datos <- read.table("/Users/claudiameneses/desktop/EA2/lista09.dat", header=TRUE)[,-1]
+```
+
+Con base en los datos sobre gasto en educación para el año de 1975 en USA, ajustamos un modelo de regresión lineal múltiple.
+
+Con excepción de $x_3$ todos los coeficientes son significativos. La $R^2$ no es muy buena esto puede deberse a que hacen falta regresores.
+
+```{r}
+mod1 <- lm(y~x1+x2+x3, data=datos)
+summary(mod1)
+```
+
+La gráfica de los residuales contra $\hat{y}$ parece indicar que entre mayor es $\hat{y}$ mayor es la varianza de los residuales. Además se puede observar un outlier en la parte superior derecha.
+
+```{r}
+plot(mod1$fitted.values,residuals(mod1))
+abline(h=0, lty="dotted", col="red")
+```
+
+La gráfica de $y$ (gasto  per cápita para la educación) de acuerdo a la región parece indicar que la varianza de y está muy relacionada con la región.
+
+```{r}
+boxplot(datos$y~as.factor(datos$region))
+plot(residuals(mod1)~datos$region)
+```
+
+Al parecer la observación 49 parece ser un outlier influencial. Lo removemos para tener un mejor modelo.
+
+```{r}
+mod2 <- lm(y~x1+x2+x3, data=datos[-49,])
+summary(mod2)
+```
+
+Calculamos la varianza por región a partir de los residuales para este modelo. Para cada región la varianza es muy diferente.
+
+```{r}
+res <- residuals(mod2)
+res_1 <- res[datos$region==1]
+n1 <- length(res_1)
+var_1 <- var(res_1)
+var_1
+var_1 <- rep(var_1,n1)
+
+res_2 <- res[datos$region==2]
+n2 <- length(res_2)
+var_2 <- var(res_2)
+var_2
+var_2 <- rep(var_2,n2)
+
+res_3 <- res[datos$region==3]
+n3 <- length(res_3)
+var_3 <- var(res_3)
+var_3
+var_3 <- rep(var_3, n3)
+
+res_4 <- res[datos$region==4][-length(res[datos$region==4])]
+n4 <- 13
+var_4 <- na.omit(var(res_4))
+var_4
+var_4 <- rep(var_4, n4)
+
+```
+
+Calculamos las ponderaciones $w_i$ para la estimación de mínimos cuadrados ponderados (WLS).
+
+```{r}
+vars <- c(var_1,var_2,var_3,var_4)
+wi <- sqrt(1/vars)
+```
+
+Calculamos la estimación de mínimos cuadrados ponderados usando los $w_i$. El $Adj- R^2$ mejoró bastante, sin embargo sólo dos coeficientes son significantes.
+
+```{r}
+R=diag(x=wi)
+w <- (solve(R)%*%datos$y)[-49]
+Z <- (solve(R)%*%model.matrix(mod1))[-49,]
+mcp <- lm(w~0+Z[,1]+Z[,2]+Z[,3]+Z[,4])
+summary(mcp)
+```
+
+
+
+

@@ -1,0 +1,193 @@
+
+---
+title: "Lista 6"
+author: "Claudia Meneses"
+date: "25/11/2019"
+output: 
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2) # Data visualization
+library(readr) # CSV file I/O, e.g. the read_csv function
+library(tables)
+library(dplyr)
+library(glmnet) #Lasso & Elastic - NEt Regularized Generalied models
+library(factoextra)
+library(gridExtra)
+dataset = read.csv("/Users/claudiameneses/desktop/EA2/Lista2/cableTV.csv", header=T,
+                   colClasses = c("numeric", "numeric", "numeric","numeric", "numeric", "numeric","numeric", "numeric", "numeric"))
+
+```
+
+#Ejercicio 10
+
+Con base en los datos de la encuesta sobre servivio de televisión por cable se considera el siguiente modelo de regresión lineal múltiple:
+
+$$Renta = \beta_0  + \beta_1 * niños + \beta_2 * adultos + \beta_3 * tvtotal + \beta_4 * valor$$
+a)  Al realizar la prueba de significancia del modelo se obtuvo que el p-value de estadístico F es: **1.772e-06**, lo cual es altamente significativo. Esto quiere decir que al menos una de las predictores esta significativamente relacionada con la variable renta. Por lo que tiene sentido rechazar la hipótesis nula : $X\beta = 0$. A continuación se muestra la tabla con el resumen del modelo.
+
+```{r setup, include=FALSE}
+modAdju <- lm( renta. ~ ninos. + adultos. + tvtot. + X.valor , data = dataset)
+summary(modAdju)
+```
+
+b)  Para verificar el estadístico $F_0$ utilizamos la siguiente tabla del análisis de varianza:
+```{r setup, include=FALSE}
+anov <- anova(modAdju)
+anov
+```
+Tenemos que:
+$$F_0 = \frac{ CM_{res} }{ CM_{Resid} } = \frac{ \frac{SC_{reg}}{4}  }{ CM_{Resid} } = \frac{ \frac{ SC_{1} + ... + SC_{4} }{4}  }{ CM_{Resid}} =   \frac{ \frac{ 793.1 + 2198.8 + 1841.7 + 2459.8 }{4}  }{ 143.83 } = \frac{ \frac{ 7293.4 }{4}  }{ 143.83 } = \frac{ 1823.35  }{ 143.83 } = 12.672$$
+ Lo cual confirma el estadístico $F$ dado por el inciso a).
+ 
+c)  Para verificar que $F_4 = (t_4)^2$, el resumen del modelo tenemos que $\hat{ \beta_4 } = 1.299e-04 $ y $ee( \hat{ \beta_4 } ) = 3.141e-05 $ por lo tanto:
+$$ F_4 = (t_4)^2 = ( \frac{ \hat{ \beta_4 } }{ ee( \hat{ \beta_4 } ) } )^2 = ( \frac{ 1.299e-04 }{ 3.141e-05 } )^2 = (4.1356  )^2 = 17.103399$$
+El cual coincide con la tabla de análisis de varianza la cual muestra que $F_4 = 17.1014$
+
+
+d)  
+
+e) Reordenando el modelo para que cada uno de los regresores quede al final se tiene que:
+
+
+i)Considerando la variable niños al final, es decir, el modelo se vuelve:
+$$Renta = \beta_0  + \beta_1 *valor + \beta_2 * adultos + \beta_3 * tvtotal + \beta_4 * niños$$
+La tabla con el resumen del modelo es:
+
+```{r setup, include=FALSE}
+modAdju2 <- lm( renta. ~ X.valor + adultos. + tvtot. + ninos., data = dataset)
+summary(modAdju2)
+```
+
+La tabla de análisis de varianza es:
+```{r setup, include=FALSE}
+anov <- anova(modAdju2)
+anov
+```
+
+Para verificar que $F_4 = (t_4)^2$, el resumen del modelo tenemos que $\hat{ \beta_4 } = -4.914 $ y $ee( \hat{ \beta_4 } ) = 2.735 $ por lo tanto:
+$$ F_4 = (t_4)^2 = ( \frac{ \hat{ \beta_4 } }{ ee( \hat{ \beta_4 } ) } )^2 = = ( -1.797 )^2 = 3.229209$$
+El cual coincide con la tabla de análisis de varianza la cual muestra que $F_4 = 3.2291$
+
+
+
+ii) Considerando la variable adultos al final, es decir, el modelo se vuelve:
+$$Renta = \beta_0  + \beta_1 *niños + \beta_2 * valor + \beta_3 * tvtotal + \beta_4 * adultos$$
+La tabla con el resumen del modelo es:
+
+```{r setup, include=FALSE}
+modAdju3 <- lm( renta. ~ ninos. + X.valor + tvtot. + adultos., data = dataset)
+summary(modAdju3)
+```
+
+La tabla de análisis de varianza es:
+```{r setup, include=FALSE}
+anov <- anova(modAdju3)
+anov
+```
+
+Para verificar que $F_4 = (t_4)^2$, el resumen del modelo tenemos que $\hat{ \beta_4 } = 2.640 $ y $ee( \hat{ \beta_4 } ) = 2.442 $ por lo tanto:
+$$ F_4 = (t_4)^2 = ( \frac{ \hat{ \beta_4 } }{ ee( \hat{ \beta_4 } ) } )^2 = = ( 1.081 )^2 = 1.168561 $$
+El cual coincide con la tabla de análisis de varianza la cual muestra que $F_4 = 1.1687$
+
+
+iii)Considerando la variable tvtotal al final, es decir, el modelo se vuelve:
+$$Renta = \beta_0  + \beta_1 *niños + \beta_2 * adultos + \beta_3 * valor + \beta_4 * tvtotal$$
+La tabla con el resumen del modelo es:
+
+```{r setup, include=FALSE}
+modAdju4 <- lm( renta. ~ ninos. +  adultos. + X.valor + tvtot. , data = dataset)
+summary(modAdju4)
+```
+
+La tabla de análisis de varianza es:
+```{r setup, include=FALSE}
+anov <- anova(modAdju4)
+anov
+```
+
+Para verificar que $F_4 = (t_4)^2$, el resumen del modelo tenemos que $\hat{ \beta_4 } = 4.505e-01 $ y $ee( \hat{ \beta_4 } ) = 1.144e-01 $ por lo tanto:
+$$ F_4 = (t_4)^2 = ( \frac{ \hat{ \beta_4 } }{ ee( \hat{ \beta_4 } ) } )^2 = = ( 3.936 )^2 = 15.492096$$
+El cual coincide con la tabla de análisis de varianza la cual muestra que $F_4 = 15.4956$
+
+
+#Ejercicio 11
+
+```{r setup, include=FALSE}
+#Cargar datos
+dataset2 = read.csv("/Users/claudiameneses/desktop/EA2/reac.csv", header=T,
+                   colClasses = c("numeric", "numeric", "numeric","numeric", "numeric", "numeric"))
+```
+
+a) Se realiza el ajuste lineal dado por:
+
+$$  y = \beta_0  + \beta_1 * x_1 + \beta_2 * x_2 + \beta_3 * x_3 + \beta_4 * x_4$$
+Con base en la figura 9, el modelo anterior parece indicar que: con exepción de la presión los factores parecen afectar el porcetaje de conversión significativamente una vez que los p-values están dados por : 0.000247,  6e-09, 0.871139, 0.003802 para x1, x2, x3 y x4 respectivamente. 
+
+```{r setup, include=FALSE}
+
+modAdju7 <- lm( y ~ x1 + x2 + x3 + x4 , data = dataset2)
+summary(modAdju7)
+
+```
+
+b) Se verifica que los regresores son ortogonales entre ellos:
+
+```{r setup}
+sum(dataset$x1*dataset$x2)
+sum(dataset$x1*dataset$x3)
+sum(dataset$x1*dataset$x4)
+sum(dataset$x2*dataset$x3)
+sum(dataset$x2*dataset$x4)
+sum(dataset$x3*dataset$x4)
+
+```
+
+Una vez que todos los resultados son cero, se tiene que efectivamente todas las variables son ortogonales los datos.
+
+
+c) Se verifica que para todo $ i \in \{ 1,2,3,4 \} $ se cumpler que $F_i = ( t_i  )^2 $, para esto usamos la tabla de análisis de varianza y la tabla anterior:
+
+```{r setup, include=FALSE}
+
+anov <- anova(modAdju7)
+anov
+
+```
+
+i) De acuerdo a la tabla de análisis de varianza $ F_1  = 28.2306$ y de acuerdo con la tabla del resumen del modelo:
+$ F_1 = ( t_1 )^2 = (-5.313)^2 = 28.22797 $.
+
+ii) De acuerdo a la tabla de análisis de varianza $ F_2  = 254.0752 $ y de acuerdo con la tabla del resumen del modelo:
+$ F_2 = ( t_2 )^2 = ( 15.940 )^2 = 254.0836 $.
+
+iii) De acuerdo a la tabla de análisis de varianza $ F_3  = 0.0276 $ y de acuerdo con la tabla del resumen del modelo:
+$ F_3 = ( t_3 )^2 = ( -0.166 )^2 = 0.027556 $.
+
+iii) De acuerdo a la tabla de análisis de varianza $ F_4  = 13.3434 $ y de acuerdo con la tabla del resumen del modelo:
+$ F_4 = ( t_4 )^2 = ( -3.653 )^2 = 13.34441$.
+
+Por lo anterior, queda verificado que para todo $ i \in \{ 1,2,3,4 \} $ se cumpler que $F_i = ( t_i  )^2 $, esto se debe a que los regresores son ortogonales entre ellos por lo  que  no importa el orden en que aparecen en el modelo, las sumas de cuadrados correspondientes en el anova
+no cambian.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

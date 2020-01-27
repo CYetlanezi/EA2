@@ -1,0 +1,162 @@
+---
+title: "Laboratorio 2 - Estadística Aplicada II"
+author: "The Powerpuff Girls"
+date: "01/10/2019"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(gridExtra)#Compare graph
+library(ggplot2) # Data visualization
+library(readr) # CSV file I/O, e.g. the read_csv function
+library(dplyr)
+library(vtreat) #'data.frame' statiscally procesor
+library(broom) #Convert Statistical Analysis Objects into Tidy Tibbles
+library(caret) #Calssificaton and regretion training
+library(glmnet) #Lasso & Elastic - NEt Regularized Generalied models
+library(Hmisc)#Correlation matrix
+library(factoextra)
+library(class)
+library(corrplot)
+library(stats)
+library(MASS)
+#Cargar data
+#system("ls ../input")
+#data <- read_csv("/Users/claudiameneses/desktop/prestige.csv")
+data <- read.table("http://allman.rhon.itam.mx/~ebarrios/EstApl2-2019/controles/control2/consumoAguaElect.dat", header = T)
+datos <- data.frame(data[c(1,2,3)])
+```
+
+# Control 2
+
+# 1
+Utilice el Método Delta (aproximación por expansión por series de Taylor, propagación de error), para justificar que si
+$\sigma^2 \propto [E(y)]^3$, $Y = \frac{1}{\sqrt(y)}$, es la transformación qu estabiliza la varianza. <br/> <br/>
+Por el teorema de Taylor podemos aproximar <br/> $r(y) = \frac{1}{\sqrt{y}} = Y$ por <br/> <br/>
+$r(y) = r( \mu ) + r'( \mu ) (y - \mu) \implies  r(y) - r( \mu ) = r'( \mu ) (y - \mu)$. <br/><br/>
+Por lo tanto,<br/>
+$Var(Y) \simeq Var(r(y)) = ( r(y) - r( \mu ) )^2 = ( r'( \mu ) (y - \mu) )^ 2 = r'( \mu )^ 2 (y - \mu)^ 2 = r'( \mu )^ 2 \sigma_{y} ^2 = (\frac{- \mu ^\frac{-3}{2} }{2})^2 \sigma_{y} ^2 = (\frac{ \mu ^ -3 }{ 4 } )\sigma_{y} ^ 2$ <br/><br/>
+Y por la hipótesis, <br/>
+$\sigma_{Y} = Var(Y) = (\frac{ \mu ^ -3 }{ 4 } )\sigma_{y} ^ 2 \propto (\frac{ \mu ^ -3 }{ 4 } )\mu ^ 3 = \frac{1}{4}$<br/> <br/>
+En conclusión,<br/>
+$\sigma_{Y}  \propto$ constante
+
+# 2 
+
+$$\lim_{\lambda \to 0} \frac{y^\lambda - 1}{\lambda y^{- \lambda -1}} = \lim_{\lambda \to 0} \frac{\ln(y) y^\lambda }{y^{ \lambda -1} + \lambda \ln(y) y^{ \lambda -1} } =  \frac{\ln(y)}{\frac{1}{y}} = y \ln(y)$$
+
+# 3
+
+### Grafique los datos y comente
+En este primer análisis exploratorio de datos mostramos un resúmen y una gráfica en donde se puede notar una relación positiva entre los datos. Además, al sacar la correlación de los datos da un valor de 0.84. Es importante mencionar que, en general,  el consumo de agua es mayor al consumo de electricidad, ya que la media para el consumo de agua es de 9.5 y para el de consumo de electricidad es de 5.1. 
+
+```{r, echo=FALSE, out.width = "50%"}
+mydata <-datos[-c(1)]
+summary(mydata)
+ggplot(mydata, aes(x=c.elec, y = c.agua))+geom_point()
+cor_matrix <- cor(mydata, method = "pearson", use = "complete.obs")
+cor_matrix
+```
+
+### Ajuste un modelo de regresión lineal simple sobre los datos sin transformar
+
+El análisis del modelo lineal: 
+
+Consumo de agua = $\beta_0$ + $\beta_1$*Consumo eléctrico + $\varepsilon$
+
+Muestra que:
+
+$\beta_0 = 2.88$, es decir, el valor promedio de consumo de agua cuando el consumo eléctrico es 0 es de $2.88$.
+
+$\beta_1 = 1.30$, es decir, por cada aumento de una unidad en el consumo eléctrico esperamos que el consumo de agua aumente (en promedio) $1.3$.
+
+Los p-values son pequeños de $0.000168$ y $1.89e-14$ para $\beta_0$ y $\beta_1$ respectivamente. En particular, $1.89e-14$ es muy pequeño por lo que rechazamos la hipótesis nula ( $\beta_1 = 0$ ) y concluimos que $\beta_1 = 1.30$ es estadísticamente significante. 
+
+El p-value del estadistico F es muy pequeño $1.89e-14$, como se puede esperar una vez que sólo tenemos una variable (la cual es estadíticamente significante).
+
+
+```{r, echo=FALSE, out.width = "50%"}
+regresion <- lm(c.agua ~ c.elec, data = datos)
+summary(regresion)
+```
+
+### Verifique su modelo via análisis de residuales. Comente.
+
+En la primer gráfica presentada a continuación "Residuals vs Fitted" los residuales no se ven muy aleatorios alrededor de la línea 0. Esto sugiere que la suposición de que la relación entre las varables es lineal no es muy razonable.
+
+En la misma gráfica, los residualess no parecen formar aproximadamente una banda horizontal alrededor de la línea 0, en su lugar, se observa que los primeros valores están más pegados a la recta punteada, pero conforme avanzamos se nota una mayor dispersión. Esto sugiere que las variaciones de los términos de error no son similares. 
+
+Además, tenemos tres `outliers` representados por los puntos 33, 38 y 39, los cuales también se ven más alejados de la recta en el gráfico Normal Q-Q.
+
+En la segunda gráfica "Normal Q-Q", que en general indica la normalidad de los residuales, se muestra que el supuesto de normalidad no se esta cumpliendo tanto, en especial en los "extremos".
+
+En la tercer gráfica "Scale - Location" la línea roja no es tan horizontal, por lo que, la magnitud promedio de los residuales estandarizados cambia un poco en función de los valores ajustados. 
+Por otro lado, la dispersión de los puntos alrededor de la línea roja varía con los valores ajustados, por lo que, la variabilidad de las magnitudes varía un poco en función de los valores ajustados.
+
+Por último, la cuarta gráfica "Residuals vs Leverage" muestra que no hay casos influyentes. Apenas se ven las líneas de la distancia de Cook.
+
+Lo anterior sugiere que lo mejor sería realizar una transformación de los datos.
+
+```{r, echo=FALSE, out.width = "50%"}
+plot(regresion)
+ggplot(datos, aes(x=c.elec, y = c.agua))+geom_point()+geom_smooth(method = lm, se = FALSE)  
+```
+
+
+### Aplique la transformación de Box-Cox y construya un intervalo del 90 % de confianza para $\lambda$.
+
+La gráfica siguiente muestra la función de verosimilitud para los valores de $\lambda$ con el intervalo de confianza del 95%. Se obtuvo que la $\lambda$ óptima (punto máximo de la fución de verosimilitud) es de $-0.1414141$. Sin embargo, usamos $\lambda = 0$ ya que es más fácil de interpretar y está dentro del intervalo de confianza del 95%. [Ref. http://allman.rhon.itam.mx/~ebarrios/EstApl2-2019/notas/12-trans.pdf, página 26]
+
+```{r, echo=FALSE, out.width = "50%"}
+  bc <- boxcox(regresion)
+  lamda <- bc$x[which(bc$y == max(bc$y))]
+  lamda
+```
+
+Aplicamos la transformación de Box - Cox para la $\lambda = 0 \implies y^\lambda  = log(y)$ 
+
+```{r, echo=FALSE, out.width = "50%"}
+  lambda <- 0
+  datos <- data.frame(datos)
+  datos$ylambda <- c(log(datos$c.agua))
+```
+
+
+### Grafique $y^{(\lambda)}$ vs $x$  y comente.
+
+Al realizar la transformación $y^{(\lambda)}$ podemos observar que la correlación ahora es -.874 entre las variables y se aprencian menos `outliers`.
+
+```{r, echo=FALSE, out.width = "50%"}
+ggplot(datos, aes(x=c.elec, y = ylambda))+geom_point()+geom_smooth(method = lm, se = FALSE)
+mydata2 <-datos[-c(1,3)]
+```
+
+### Ajustar el modelo correspondiente y validarlo. Comente.
+
+El análisis del modelo lineal tras la transformación. Muestra que:
+
+Los p-values son más pequeños de $2e-16$ y $2e-16$ para $\beta_0 '$ y $\beta_1 '$ respectivamente, por lo que son estadísticamente significantes. 
+
+```{r, echo=FALSE, out.width = "50%"}
+  bcmodel <- lm( ylambda ~ c.elec, data = datos)
+  summary(bcmodel)
+```
+
+En la primer gráfica presentada a continuación "Residuals vs Fitted" los residuales se ven más aleatorios alrededor de la línea 0, en comparación con la misma gráfica sin la transformación. Sin embargo, se siguen observando los `outliers`. 
+
+En la segunda gráfica "Normal Q-Q", se muestra que el supuesto de normalidad también mejoró, aunque, en la cola superior derecha parace que no se ajusta tan bien.
+
+En la tercer gráfica "Scale - Location" la línea roja es más horizontal, por lo que, la magnitud promedio de los residuales estandarizados no cambia tanto función de los valores ajustados. 
+
+Por último, la cuarta gráfica "Residuals vs Leverage" muestra que no hay casos influyentes. Apenas se ven las líneas de la distancia de Cook.
+
+Lo anterior sugiere que la transformación Box - Cox mejoró el modelo.
+
+```{r, echo=FALSE, out.width = "50%"}
+  plot(bcmodel)
+```
+
+
+

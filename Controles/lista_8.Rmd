@@ -1,0 +1,84 @@
+---
+title: "Lista_8"
+author: "Claudia Meneses"
+date: "3/1/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+datos <- read.csv("/Users/claudiameneses/desktop/EA2/Hald.csv", header=T,
+                  colClasses = c("numeric", "numeric", "numeric","numeric", "numeric"))
+```
+
+**a)** Primero ajustamos el modelo lineal en los 4 regresores x's. Se puede observar que todos los regresores son no significantes, excepto x3. El p-value de estadístico F es significante, por lo cual tiene sentido rechazar la hipótesis nula. $X\beta = 0$.
+```{r}
+mod1 <- lm(y~x1+x2+x3+x4, data=datos)
+summary(mod1)
+```
+
+Calculamos los residuales, los residuales estandarizados, los studentizados interna y externamente.
+
+```{r}
+n=length(datos$y)
+X=model.matrix(mod1)
+H=X%*%solve(crossprod(X,X))%*%t(X)
+hii <- diag(H)
+residuales <- residuals(mod1)
+estandarizados <- residuales/(2.446)
+var_student <- 2.446*sqrt((1-hii))
+studentizados_internamente <- residuales/var_student
+s2_i <- ((n-5)*(2.446^2) - (residuales^2)/(1-hii))/(n-1-5)
+studentizados_externamente <- residuales/(s2_i*sqrt(1-hii))
+y_ajustada <- mod1$fitted.values
+```
+
+Graficamos los residuales para compararlos. Parece que los distintos residuales nos dan informacón parecida. Podemos notar que parecen cumplir con la aleatoriedad.
+
+```{r}
+plot(y_ajustada, residuales)
+plot(y_ajustada, estandarizados)
+plot(y_ajustada, studentizados_externamente)
+plot(y_ajustada,studentizados_internamente)
+```
+
+Calculamos los estadísticos de Cook. Se puede observar que dos observaciones destacan.
+
+```{r}
+di <- (studentizados_internamente)^2*(hii/(1-hii))*1/5
+plot(hii,di, main="Cook",ylab="distancia_cook: di", xlab="apalancamiento: hii")
+```
+
+
+El residual estandarizado y studentizado de la octava observación parece ser más alto de lo normal.
+
+```{r}
+order(abs(estandarizados))
+abs(estandarizados[8])
+order(abs(studentizados_externamente))
+abs(studentizados_externamente[8])
+```
+
+
+Además la distancia de cook más grande es la de la octava observación.
+
+```{r}
+order(di)
+```
+
+**b)** Eliminamos la octava observación y repetimos lo anterior. Al elmininar la octava observación las estimaciones de la Beta estimada cambiaron. En especial $\beta_0$ se redujo casi a la mitad. La desviación estándar se redujo un 20% aproximadamente.
+
+```{r}
+mod2 <- lm(y~x1+x2+x3+x4, data=datos[-8,])
+summary(mod2)
+```
+
+Apartir de los BFBETAS y DFFIT  podemos notar que el dffit de la octava observación es la más alta.
+
+```{r}
+print(influence.measures(mod1)) 
+```
+
+
+
+
+
